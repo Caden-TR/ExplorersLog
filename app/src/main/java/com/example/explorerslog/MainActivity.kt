@@ -87,20 +87,33 @@ class MainActivity : ComponentActivity() {
 
 // ---- Stage 1: the Find data class and currentTime() -------------------
 
+data class Find(
+    val note: String,
+    val time: String
+)
+fun currentTime(): String {
+    return LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+}
+
 
 // ---- Stage 2: buzz() ---------------------------------------------------
+
 
 
 // ---- Stage 3: batteryLevel() -------------------------------------------
 
 
+
 // ---- Stage 4: hasNotificationPermission() and sendNotification() -------
+
 
 
 // ---- Stage 5: hasLocationPermission(), describeLocation(), getLocation()
 
 
+
 // ---- Stretch: openAppSettings() ----------------------------------------
+
 
 
 // ---- The app -----------------------------------------------------------
@@ -108,15 +121,55 @@ class MainActivity : ComponentActivity() {
 // After that, each stage adds to it.
 @Composable
 fun ExplorersLogApp(modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxSize().padding(24.dp)) {
+    val finds = remember { mutableStateListOf<Find>() }
+    var note by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf("Ready to explore") }
+    fun logFind() {
+        if (note.isBlank()) {
+            status = "Type what you found first"
+            return
+        }
+        finds.add(0, Find(note, currentTime()))
+        status = "Logged: $note"
+        note = ""
+    }
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp)
+    ) {
         Text("Explorer's Log", fontSize = 32.sp)
+        Text(status)
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Your log goes here")
+        OutlinedTextField(
+            value = note,
+            onValueChange = { note = it },
+            label = { Text("What did you find?") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Button(onClick = { logFind() }) {
+            Text("Log it")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        for (find in finds) {
+            FindCard(find)
+        }
     }
 }
 
+
 // ---- Stage 1: FindCard goes here ---------------------------------------
 
+@Composable
+fun FindCard(find: Find) {
+    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(find.note, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Time: ${find.time}")
+        }
+    }
+}
 
 // ---- Preview -----------------------------------------------------------
 @Preview(showBackground = true)
@@ -126,3 +179,4 @@ fun ExplorersLogAppPreview() {
         ExplorersLogApp()
     }
 }
+
