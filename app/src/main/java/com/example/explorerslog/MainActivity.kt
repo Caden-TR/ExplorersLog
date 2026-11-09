@@ -1,3 +1,4 @@
+
 package com.example.explorerslog
 
 // All the imports you need for every stage are already here.
@@ -89,8 +90,10 @@ class MainActivity : ComponentActivity() {
 
 data class Find(
     val note: String,
-    val time: String
+    val time: String,
+    val battery: Int? = null
 )
+
 fun currentTime(): String {
     return LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
 }
@@ -111,39 +114,49 @@ fun buzz(context: Context) {
 
 // ---- Stage 3: batteryLevel() -------------------------------------------
 
+fun batteryLevel(context: Context): Int {
+    val manager = context.getSystemService(BatteryManager::class.java)
+    if (manager == null) {
+        return -1
+    }
+    val property = BatteryManager.BATTERY_PROPERTY_CAPACITY
+    return manager.getIntProperty(property)
+}
 
 
 // ---- Stage 4: hasNotificationPermission() and sendNotification() -------
 
 
-
 // ---- Stage 5: hasLocationPermission(), describeLocation(), getLocation()
-
 
 
 // ---- Stretch: openAppSettings() ----------------------------------------
 
 
-
 // ---- The app -----------------------------------------------------------
-// Stage 1: replace this whole function with the code on your task sheet.
-// After that, each stage adds to it.
+
 @Composable
 fun ExplorersLogApp(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val finds = remember { mutableStateListOf<Find>() }
     var note by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("Ready to explore") }
+
+    var battery by remember { mutableStateOf(batteryLevel(context)) }
+
     fun logFind() {
         buzz(context)
         if (note.isBlank()) {
             status = "Logged: $note (bzzz!)"
             return
         }
-        finds.add(0, Find(note, currentTime()))
+
+        battery = batteryLevel(context)
+        finds.add(0, Find(note, currentTime(), battery))
         status = "Logged: $note"
         note = ""
     }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -152,17 +165,31 @@ fun ExplorersLogApp(modifier: Modifier = Modifier) {
     ) {
         Text("Explorer's Log", fontSize = 32.sp)
         Text(status)
+
+        Text("Battery: $battery%")
+
+        if (battery in 0..19) {
+            Text(
+                "Battery low! Head back to base.",
+                color = Color.Red
+            )
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
+
         OutlinedTextField(
             value = note,
             onValueChange = { note = it },
             label = { Text("What did you find?") },
             modifier = Modifier.fillMaxWidth()
         )
+
         Button(onClick = { logFind() }) {
             Text("Log it")
         }
+
         Spacer(modifier = Modifier.height(16.dp))
+
         for (find in finds) {
             FindCard(find)
         }
@@ -174,15 +201,30 @@ fun ExplorersLogApp(modifier: Modifier = Modifier) {
 
 @Composable
 fun FindCard(find: Find) {
-    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(find.note, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(
+                find.note,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+
             Text("Time: ${find.time}")
+
+            if (find.battery != null) {
+                Text("Battery: ${find.battery}%")
+            }
         }
     }
 }
 
+
 // ---- Preview -----------------------------------------------------------
+
 @Preview(showBackground = true)
 @Composable
 fun ExplorersLogAppPreview() {
@@ -190,4 +232,3 @@ fun ExplorersLogAppPreview() {
         ExplorersLogApp()
     }
 }
-
