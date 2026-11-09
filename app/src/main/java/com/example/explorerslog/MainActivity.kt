@@ -126,6 +126,33 @@ fun batteryLevel(context: Context): Int {
 
 // ---- Stage 4: hasNotificationPermission() and sendNotification() -------
 
+const val CHANNEL_ID = "finds"
+fun hasNotificationPermission(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        return true // Before Android 13, apps did not have to ask
+    }
+    val permission = Manifest.permission.POST_NOTIFICATIONS
+    val result = ContextCompat.checkSelfPermission(context, permission)
+    return result == PackageManager.PERMISSION_GRANTED
+}
+// We check the permission at the start of this function
+@SuppressLint("MissingPermission")
+fun sendNotification(context: Context, text: String) {
+    if (!hasNotificationPermission(context)) {
+        return
+    }
+    val importance = NotificationManager.IMPORTANCE_DEFAULT
+    val channel = NotificationChannel(CHANNEL_ID, "Finds", importance)
+    val manager = NotificationManagerCompat.from(context)
+    manager.createNotificationChannel(channel)
+    val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        .setSmallIcon(android.R.drawable.ic_dialog_info)
+        .setContentTitle("Find logged!")
+        .setContentText(text)
+        .build()
+    val id = System.currentTimeMillis().toInt()
+    manager.notify(id, notification)
+}
 
 // ---- Stage 5: hasLocationPermission(), describeLocation(), getLocation()
 
@@ -141,11 +168,21 @@ fun ExplorersLogApp(modifier: Modifier = Modifier) {
     val finds = remember { mutableStateListOf<Find>() }
     var note by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("Ready to explore") }
-
     var battery by remember { mutableStateOf(batteryLevel(context)) }
+
+    val notificationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            status = "Notifications are on"
+        } else {
+            status = "Notifications are off. The app still works."
+        }
+    }
 
     fun logFind() {
         buzz(context)
+        sendNotification(context, note)
         if (note.isBlank()) {
             status = "Logged: $note (bzzz!)"
             return
@@ -186,6 +223,16 @@ fun ExplorersLogApp(modifier: Modifier = Modifier) {
 
         Button(onClick = { logFind() }) {
             Text("Log it")
+        }
+
+        OutlinedButton(onClick = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                status = "This phone does not need to ask"
+            }
+        }) {
+            Text("Turn on notifications")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
