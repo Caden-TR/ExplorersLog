@@ -98,6 +98,15 @@ fun currentTime(): String {
 
 // ---- Stage 2: buzz() ---------------------------------------------------
 
+fun buzz(context: Context) {
+    val vibrator = context.getSystemService(Vibrator::class.java)
+    if (vibrator == null) {
+        return
+    }
+    vibrator.vibrate(
+        VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE)
+    )
+}
 
 
 // ---- Stage 3: batteryLevel() -------------------------------------------
@@ -121,12 +130,14 @@ fun currentTime(): String {
 // After that, each stage adds to it.
 @Composable
 fun ExplorersLogApp(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     val finds = remember { mutableStateListOf<Find>() }
     var note by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("Ready to explore") }
     fun logFind() {
+        buzz(context)
         if (note.isBlank()) {
-            status = "Type what you found first"
+            status = "Logged: $note (bzzz!)"
             return
         }
         finds.add(0, Find(note, currentTime()))
